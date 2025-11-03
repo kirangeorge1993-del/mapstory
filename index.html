@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stories of Change from India | U&I</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2atV5w9jqwkvQZuhQ0FmjwkYkO1wSjQxkPpU5A8="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --ui-red: #CB0100;
+      --ui-white: #FFFFFF;
+      --ui-black: #000000;
+      --ui-purple: #2B1C98;
+      --ui-green: #14A44D;
+      --header-height: 92px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      background: var(--ui-red);
+      color: var(--ui-white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 16px 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--ui-red);
+      position: relative;
+      z-index: 1000;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hamburger {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .hamburger span,
+    .hamburger span::before,
+    .hamburger span::after {
+      content: "";
+      display: block;
+      width: 18px;
+      height: 2px;
+      background: var(--ui-white);
+      border-radius: 999px;
+      position: relative;
+    }
+
+    .hamburger span::before {
+      position: absolute;
+      top: -6px;
+    }
+
+    .hamburger span::after {
+      position: absolute;
+      top: 6px;
+    }
+
+    .badge {
+      flex: 1;
+      margin: 0 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .badge-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge-subtitle {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+
+    .source-select {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+
+    .source-select label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .source-select select {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: var(--ui-white);
+      padding: 6px 28px 6px 12px;
+      border-radius: 999px;
+      appearance: none;
+      position: relative;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .map-wrapper {
+      position: relative;
+      flex: 1;
+      min-height: calc(100vh - var(--header-height));
+      background: var(--ui-red);
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: var(--ui-red);
+    }
+
+    .leaflet-container {
+      background: transparent;
+    }
+
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .city-marker {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--ui-white);
+      border: 3px solid rgba(0, 0, 0, 0.25);
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45);
+      animation: pulse 2.8s ease-out 1;
+    }
+
+    .city-marker::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      opacity: 0;
+      animation: halo 2.4s ease-out 1;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.6);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes halo {
+      0% {
+        transform: scale(0.4);
+        opacity: 0.6;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 0;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .city-marker,
+      .city-marker::after {
+        animation: none !important;
+      }
+    }
+
+    .bubble {
+      position: absolute;
+      max-width: min(320px, 80vw);
+      background: var(--ui-purple);
+      color: var(--ui-white);
+      padding: 16px 18px 18px;
+      border-radius: 16px;
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+      transform-origin: bottom center;
+      z-index: 1200;
+      pointer-events: auto;
+      display: none;
+    }
+
+    .bubble[data-open="true"] {
+      display: block;
+      animation: bubble-in 220ms ease-out;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .bubble[data-open="true"] {
+        animation: none;
+      }
+    }
+
+    @keyframes bubble-in {
+      0% {
+        transform: translate(-50%, 8px) scale(0.85);
+        opacity: 0;
+      }
+      100% {
+        transform: translate(-50%, 0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 12px solid var(--ui-purple);
+    }
+
+    .bubble h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+    }
+
+    .bubble ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      font-size: 0.92rem;
+    }
+
+    .bubble ul li {
+      margin-bottom: 6px;
+    }
+
+    .bubble button {
+      appearance: none;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 999px;
+      background: var(--ui-green);
+      color: var(--ui-white);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .fab-reset {
+      position: absolute;
+      right: 16px;
+      bottom: 24px;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ui-red);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1100;
+    }
+
+    .fab-reset span {
+      display: block;
+    }
+
+    .loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(203, 1, 0, 0.82);
+      color: var(--ui-white);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      z-index: 1400;
+      transition: opacity 200ms ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loader[data-visible="true"] {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .loader span {
+      border: 3px solid rgba(255, 255, 255, 0.4);
+      border-top-color: var(--ui-white);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      margin-right: 12px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(120%);
+      background: rgba(0, 0, 0, 0.75);
+      color: var(--ui-white);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      transition: transform 220ms ease-out, opacity 220ms ease-out;
+      opacity: 0;
+      z-index: 1500;
+    }
+
+    .toast[data-visible="true"] {
+      transform: translateX(-50%) translateY(0%);
+      opacity: 1;
+    }
+
+    .legend {
+      position: absolute;
+      left: 16px;
+      bottom: 24px;
+      background: rgba(43, 28, 152, 0.85);
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      max-width: 200px;
+      z-index: 1100;
+    }
+
+    .legend strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 32px;
+      }
+
+      .badge {
+        align-items: flex-start;
+      }
+
+      .badge-subtitle {
+        font-size: 1rem;
+      }
+
+      .map-wrapper {
+        min-height: calc(100vh - 112px);
+      }
+
+      .legend {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="top-row">
+      <button class="hamburger" aria-label="Open navigation" type="button">
+        <span aria-hidden="true"></span>
+      </button>
+      <div class="badge">
+        <div class="badge-title">U&amp;I for Every Child</div>
+        <div class="badge-subtitle">Stories of Change from India</div>
+      </div>
+      <div style="width:40px;height:40px;"></div>
+    </div>
+    <div class="source-select">
+      <label for="boundarySource">Boundary Source</label>
+      <select id="boundarySource" aria-label="Select boundary data source">
+      </select>
+    </div>
+  </header>
+  <div class="map-wrapper">
+    <div id="map" role="region" aria-label="Map of India with cities"></div>
+    <div class="legend">
+      <strong>Tap the glowing dots</strong>
+      Explore changemaker stories from every corner of India.
+    </div>
+    <button class="fab-reset" id="resetView" type="button" aria-label="Reset to full India view">
+      <span>Reset View</span>
+    </button>
+    <div class="bubble" id="cityBubble" role="dialog" aria-modal="false" aria-hidden="true" tabindex="-1"></div>
+    <div class="loader" id="loader" role="status" aria-live="polite">
+      <span aria-hidden="true"></span>
+      Loading India map…
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="assertive"></div>
+  </div>
+
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kGStG8g86Y2vIBgCeoi3WFfEQQ2fY/3rt2Bbs=" crossorigin=""></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script defer>
+    const CITY_DATA = [
+      { name: "Varanasi",   lat: 25.3176, lng: 82.9739, kids: 500, hours: 45000, changemakers: 300, storyUrl: "#" },
+      { name: "Darjeeling", lat: 27.0410, lng: 88.2663, kids: 300, hours: 22000, changemakers: 120, storyUrl: "#" },
+      { name: "Kozhikode",  lat: 11.2588, lng: 75.7804, kids: 420, hours: 36000, changemakers: 180, storyUrl: "#" },
+      { name: "Kolkata",    lat: 22.5726, lng: 88.3639, kids: 800, hours: 70000, changemakers: 550, storyUrl: "#" },
+      { name: "Kasaragod",  lat: 12.4996, lng: 74.9869, kids: 260, hours: 18000, changemakers: 90, storyUrl: "#" },
+      { name: "Mangalore",  lat: 12.9141, lng: 74.8560, kids: 480, hours: 41000, changemakers: 210, storyUrl: "#" },
+      { name: "Bhubaneshwar", lat: 20.2961, lng: 85.8245, kids: 520, hours: 47000, changemakers: 240, storyUrl: "#" },
+      { name: "Jaipur",     lat: 26.9124, lng: 75.7873, kids: 600, hours: 52000, changemakers: 260, storyUrl: "#" },
+      { name: "Madurai",    lat:  9.9252, lng: 78.1198, kids: 370, hours: 30000, changemakers: 150, storyUrl: "#" },
+      { name: "Patna",      lat: 25.5941, lng: 85.1376, kids: 540, hours: 49000, changemakers: 230, storyUrl: "#" },
+      { name: "Salem",      lat: 11.6643, lng: 78.1460, kids: 320, hours: 24000, changemakers: 110, storyUrl: "#" },
+      { name: "Pune",       lat: 18.5204, lng: 73.8567, kids: 750, hours: 68000, changemakers: 500, storyUrl: "#" },
+      { name: "Kollam",     lat:  8.8932, lng: 76.6141, kids: 290, hours: 21000, changemakers: 100, storyUrl: "#" },
+      { name: "Surat",      lat: 21.1702, lng: 72.8311, kids: 580, hours: 53000, changemakers: 260, storyUrl: "#" },
+      { name: "Nagpur",     lat: 21.1458, lng: 79.0882, kids: 560, hours: 51000, changemakers: 240, storyUrl: "#" },
+      { name: "Vellore",    lat: 12.9165, lng: 79.1325, kids: 300, hours: 23000, changemakers: 100, storyUrl: "#" },
+      { name: "Rajkot",     lat: 22.3039, lng: 70.8022, kids: 420, hours: 36000, changemakers: 170, storyUrl: "#" },
+      { name: "Vijayawada", lat: 16.5062, lng: 80.6480, kids: 500, hours: 45000, changemakers: 210, storyUrl: "#" },
+      { name: "Kodaikanal", lat: 10.2381, lng: 77.4892, kids: 260, hours: 19000, changemakers: 90,  storyUrl: "#" },
+      { name: "Vizag",      lat: 17.6868, lng: 83.2185, kids: 530, hours: 48000, changemakers: 220, storyUrl: "#" },
+      { name: "Kochi",      lat:  9.9312, lng: 76.2673, kids: 410, hours: 35000, changemakers: 160, storyUrl: "#" },
+      { name: "Hubli",      lat: 15.3647, lng: 75.1239, kids: 340, hours: 27000, changemakers: 120, storyUrl: "#" },
+      { name: "Guwahati",   lat: 26.1445, lng: 91.7362, kids: 320, hours: 25000, changemakers: 120, storyUrl: "#" },
+      { name: "Coimbatore", lat: 11.0168, lng: 76.9558, kids: 520, hours: 46000, changemakers: 200, storyUrl: "#" },
+      { name: "Vadodara",   lat: 22.3072, lng: 73.1812, kids: 470, hours: 42000, changemakers: 190, storyUrl: "#" },
+      { name: "Belgaum",    lat: 15.8497, lng: 74.4977, kids: 310, hours: 23000, changemakers: 100, storyUrl: "#" },
+      { name: "Tiruppur",   lat: 11.1085, lng: 77.3411, kids: 300, hours: 22000, changemakers: 95,  storyUrl: "#" },
+      { name: "Hyderabad",  lat: 17.3850, lng: 78.4867, kids: 700, hours: 64000, changemakers: 480, storyUrl: "#" },
+      { name: "Srinagar",   lat: 34.0837, lng: 74.7973, kids: 280, hours: 20000, changemakers: 90,  storyUrl: "#" },
+      { name: "Trivandrum", lat:  8.5241, lng: 76.9366, kids: 350, hours: 29000, changemakers: 130, storyUrl: "#" },
+      { name: "Mysore",     lat: 12.2958, lng: 76.6394, kids: 360, hours: 30000, changemakers: 140, storyUrl: "#" },
+      { name: "Ahmedabad",  lat: 23.0225, lng: 72.5714, kids: 650, hours: 60000, changemakers: 430, storyUrl: "#" },
+      { name: "Delhi",      lat: 28.6139, lng: 77.2090, kids: 900, hours: 82000, changemakers: 650, storyUrl: "#" },
+      { name: "Mumbai",     lat: 19.0760, lng: 72.8777, kids: 950, hours: 90000, changemakers: 700, storyUrl: "#" },
+      { name: "Bangalore",  lat: 12.9716, lng: 77.5946, kids: 880, hours: 82000, changemakers: 620, storyUrl: "#" },
+      { name: "Chennai",    lat: 13.0827, lng: 80.2707, kids: 820, hours: 76000, changemakers: 580, storyUrl: "#" }
+    ];
+
+    const BOUNDARY_SOURCES = [
+      { name: "official", url: "assets/india_states_official.geojson" },
+      { name: "geoboundaries", url: "https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/IND/ADM1/geoBoundaries-IND-ADM1_simplified.geojson" },
+      { name: "datameet", url: "https://raw.githubusercontent.com/datameet/maps/master/States/Admin2/india_states.geojson" }
+    ];
+
+    const ISLAND_FALLBACKS = [
+      { match: ["Lakshadweep"], url: "assets/lakshadweep.geojson" },
+      { match: ["Andaman and Nicobar Islands", "Andaman & Nicobar Islands"], url: "assets/andaman_nicobar.geojson" }
+    ];
+
+    let map;
+    let boundaryLayer;
+    let allFeatures = [];
+    let featureCentroids = [];
+    let activeStateId = null;
+    let indiaBounds = null;
+    let markerLayer;
+    let currentCity = null;
+    let reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const loaderEl = document.getElementById('loader');
+    const toastEl = document.getElementById('toast');
+    const bubbleEl = document.getElementById('cityBubble');
+    const resetBtn = document.getElementById('resetView');
+    const sourceSelect = document.getElementById('boundarySource');
+
+    const stateLookup = new Map();
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    function init() {
+      setupSourceSelector();
+      setupMap();
+      addMarkers();
+      loadBoundaries(0, true);
+      resetBtn.addEventListener('click', resetView);
+      map.on('move', handleMapMove);
+      map.on('zoom', handleMapMove);
+      window.addEventListener('resize', handleMapMove);
+      document.addEventListener('keydown', (evt) => {
+        if (evt.key === 'Escape') {
+          closeBubble();
+        }
+      });
+      document.addEventListener('click', (evt) => {
+        if (bubbleEl.dataset.open === 'true' && !bubbleEl.contains(evt.target)) {
+          closeBubble();
+        }
+      });
+    }
+
+    function setupSourceSelector() {
+      BOUNDARY_SOURCES.forEach((src, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = src.name;
+        sourceSelect.appendChild(option);
+      });
+      sourceSelect.addEventListener('change', (evt) => {
+        const startIndex = Number(evt.target.value);
+        loadBoundaries(startIndex, true);
+      });
+    }
+
+    function setupMap() {
+      map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false
+      });
+      map.setView([22.5, 79.5], 5);
+      markerLayer = L.layerGroup().addTo(map);
+    }
+
+    function addMarkers() {
+      CITY_DATA.forEach((city) => {
+        const marker = L.marker([city.lat, city.lng], {
+          icon: L.divIcon({
+            className: 'city-marker',
+            iconSize: [16, 16],
+            html: '<span class="visually-hidden">' + city.name + '</span>',
+            bgPos: [0, 0]
+          }),
+          keyboard: true,
+          title: city.name
+        });
+        marker.on('click', () => focusCity(city));
+        marker.on('keypress', (evt) => {
+          const key = evt.originalEvent.key;
+          if (key === 'Enter' || key === ' ') {
+            focusCity(city);
+          }
+        });
+        markerLayer.addLayer(marker);
+      });
+    }
+
+    function showLoader(show) {
+      loaderEl.dataset.visible = show ? 'true' : 'false';
+    }
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.dataset.visible = 'true';
+      setTimeout(() => {
+        toastEl.dataset.visible = 'false';
+      }, 3200);
+    }
+
+    async function loadBoundaries(startIndex = 0, allowFallback = true) {
+      showLoader(true);
+      activeStateId = null;
+      stateLookup.clear();
+      const targetIndex = startIndex;
+      sourceSelect.value = String(targetIndex);
+
+      for (let i = startIndex; i < BOUNDARY_SOURCES.length; i += 1) {
+        const source = BOUNDARY_SOURCES[i];
+        try {
+          const data = await fetchGeoJSON(source.url);
+          const withIslands = await ensureIslands(data);
+          digestFeatures(withIslands);
+          sourceSelect.value = String(i);
+          if (i !== targetIndex) {
+            showToast(`Switched to ${source.name} boundary due to an earlier load issue.`);
+          }
+          showLoader(false);
+          return;
+        } catch (error) {
+          console.error('Boundary source failed:', source.name, error);
+          showToast(`Failed loading ${source.name} boundaries.`);
+          if (!allowFallback || i === BOUNDARY_SOURCES.length - 1) {
+            showLoader(false);
+            return;
+          }
+        }
+      }
+      showLoader(false);
+    }
+
+    async function fetchGeoJSON(url) {
+      const response = await fetch(url, { cache: 'no-cache' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.type !== 'FeatureCollection') {
+        throw new Error('Unexpected data type');
+      }
+      return data;
+    }
+
+    async function ensureIslands(collection) {
+      const featureNames = new Set(collection.features.map(getFeatureName));
+      const additions = [];
+      for (const fallback of ISLAND_FALLBACKS) {
+        const present = fallback.match.some((name) => featureNames.has(name));
+        if (!present) {
+          try {
+            const islandData = await fetchGeoJSON(fallback.url);
+            additions.push(...islandData.features);
+          } catch (error) {
+            console.warn('Could not load island fallback', fallback.url, error);
+          }
+        }
+      }
+      if (additions.length) {
+        return {
+          ...collection,
+          features: [...collection.features, ...additions]
+        };
+      }
+      return collection;
+    }
+
+    function getFeatureName(feature) {
+      if (!feature || !feature.properties) return null;
+      return (
+        feature.properties.NAME_1 ||
+        feature.properties.name ||
+        feature.properties.st_nm ||
+        feature.properties.STATE ||
+        feature.properties.state_name ||
+        feature.properties.state ||
+        feature.properties.shapeName ||
+        null
+      );
+    }
+
+    function getFeatureId(feature) {
+      const name = getFeatureName(feature) || 'unknown';
+      return `${name}-${feature.properties.shapeISO || feature.properties.iso || feature.properties.STATE_UT || feature.properties.code || ''}`;
+    }
+
+    function digestFeatures(collection) {
+      allFeatures = collection.features.filter(Boolean);
+      featureCentroids = allFeatures.map((feature) => {
+        const centroid = turf.centroid(feature);
+        return {
+          id: getFeatureId(feature),
+          name: getFeatureName(feature),
+          feature,
+          centroid
+        };
+      });
+      stateLookup.clear();
+      featureCentroids.forEach((entry) => {
+        if (!entry.name) return;
+        if (!stateLookup.has(entry.name)) {
+          stateLookup.set(entry.name, entry.feature);
+        }
+      });
+      renderBoundaries();
+      fitIndia();
+    }
+
+    function renderBoundaries() {
+      if (boundaryLayer) {
+        boundaryLayer.remove();
+      }
+      const renderer = L.canvas({ padding: 0.2 });
+      boundaryLayer = L.geoJSON(allFeatures, {
+        renderer,
+        style: baseStyle,
+        onEachFeature: (feature, layer) => {
+          layer.on({
+            click: () => handleFeatureClick(feature)
+          });
+        }
+      }).addTo(map);
+    }
+
+    function baseStyle(feature) {
+      const isActive = activeStateId && getFeatureId(feature) === activeStateId;
+      return {
+        color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.7)',
+        weight: isActive ? 2.5 : 1,
+        fillColor: isActive ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.18)',
+        fillOpacity: 1
+      };
+    }
+
+    function handleFeatureClick(feature) {
+      activeStateId = getFeatureId(feature);
+      updateBoundaryStyles();
+    }
+
+    function updateBoundaryStyles() {
+      boundaryLayer.setStyle(baseStyle);
+    }
+
+    function fitIndia() {
+      if (!allFeatures.length) return;
+      const indiaBBox = turf.bbox({ type: 'FeatureCollection', features: allFeatures });
+      indiaBounds = [[indiaBBox[1], indiaBBox[0]], [indiaBBox[3], indiaBBox[2]]];
+      map.fitBounds(indiaBounds, {
+        padding: [40, 40],
+        animate: !reduceMotion
+      });
+      closeBubble();
+      activeStateId = null;
+      updateBoundaryStyles();
+    }
+
+    function focusCity(city) {
+      if (!allFeatures.length) return;
+      const point = turf.point([city.lng, city.lat]);
+      let containingFeature = allFeatures.find((feature) => {
+        try {
+          return turf.booleanPointInPolygon(point, feature);
+        } catch (error) {
+          return false;
+        }
+      });
+      if (!containingFeature) {
+        containingFeature = findNearestFeature(point);
+      }
+      if (!containingFeature) {
+        showToast(`Could not resolve the state for ${city.name}`);
+        return;
+      }
+      activeStateId = getFeatureId(containingFeature);
+      updateBoundaryStyles();
+      zoomToFeature(containingFeature);
+      currentCity = city;
+      openBubble(city, containingFeature);
+    }
+
+    function findNearestFeature(point) {
+      const pointCoords = point.geometry.coordinates;
+      let best = null;
+      let bestDistance = Infinity;
+      for (const entry of featureCentroids) {
+        const centroidCoords = entry.centroid.geometry.coordinates;
+        const distance = turf.distance(pointCoords, centroidCoords, { units: 'kilometers' });
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = entry;
+        }
+      }
+      return bestDistance <= 50 ? best.feature : null;
+    }
+
+    function zoomToFeature(feature) {
+      const boundsArray = turf.bbox(feature);
+      const bounds = [[boundsArray[1], boundsArray[0]], [boundsArray[3], boundsArray[2]]];
+      map.fitBounds(bounds, {
+        paddingTopLeft: [40, 120],
+        paddingBottomRight: [40, 80],
+        maxZoom: 8,
+        animate: !reduceMotion
+      });
+    }
+
+    function openBubble(city, feature) {
+      const html = `
+        <h3>${city.name}</h3>
+        <ul>
+          <li><strong>Kids impacted:</strong> ${city.kids.toLocaleString()}</li>
+          <li><strong>Hours of classes:</strong> ${city.hours.toLocaleString()}</li>
+          <li><strong>Changemakers:</strong> ${city.changemakers.toLocaleString()}</li>
+        </ul>
+        <button type="button" data-url="${city.storyUrl}">READ MORE</button>
+      `;
+      bubbleEl.innerHTML = html;
+      bubbleEl.dataset.open = 'true';
+      bubbleEl.setAttribute('aria-hidden', 'false');
+      positionBubble(city);
+      const btn = bubbleEl.querySelector('button');
+      btn.addEventListener('click', () => {
+        const url = city.storyUrl || '#';
+        if (url && url !== '#') {
+          window.open(url, '_blank');
+        }
+      });
+      if (btn) {
+        btn.focus({ preventScroll: true });
+      } else {
+        bubbleEl.focus({ preventScroll: true });
+      }
+    }
+
+    function closeBubble() {
+      bubbleEl.dataset.open = 'false';
+      bubbleEl.setAttribute('aria-hidden', 'true');
+      bubbleEl.innerHTML = '';
+      currentCity = null;
+    }
+
+    function positionBubble(city) {
+      if (!currentCity) return;
+      const point = map.latLngToContainerPoint([city.lat, city.lng]);
+      bubbleEl.style.left = `${point.x}px`;
+      bubbleEl.style.top = `${point.y - 24}px`;
+      bubbleEl.style.transform = 'translate(-50%, -100%)';
+    }
+
+    let moveRaf = null;
+    function handleMapMove() {
+      if (!currentCity) return;
+      if (moveRaf) {
+        cancelAnimationFrame(moveRaf);
+      }
+      moveRaf = requestAnimationFrame(() => {
+        positionBubble(currentCity);
+      });
+    }
+
+    function resetView() {
+      if (indiaBounds) {
+        map.fitBounds(indiaBounds, { padding: [40, 40], animate: !reduceMotion });
+      }
+      activeStateId = null;
+      updateBoundaryStyles();
+      closeBubble();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "NAME_1": "Andaman and Nicobar Islands"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [92.2, 14.5],
+            [92.2, 6.5],
+            [94.0, 6.5],
+            [94.0, 14.5],
+            [92.2, 14.5]
+          ]
+        ]
+      }
+    }
+  ]
+}
